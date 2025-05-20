@@ -1,0 +1,63 @@
+#!/bin/bash
+####script for Kube pkgs install on Ubuntu server only
+#how to run , $ bash kube-pkgs-install.sh 1.32 // here 1.32 is kube pkg version
+os=$(lsb_release -si) 
+if [ "$os" -ne "Ubuntu" ]; then   
+  echo "Ubuntu not detected!" && exit 1;
+fi
+echo "installing Kube pkgs in 5sec(applicable for both Master and worker node)"
+KUBE_PKG_VERSION=$1
+if [ -z $KUBE_PKG_VERSION ] ; then
+  echo "First parameter needed!, like kube version 1.32 or 1.33 etc" && exit 1;
+fi
+
+####
+echo "will off swap and delete swap file too..."
+sleep 5
+#swap off
+ swapoff -a
+ free -h
+ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+ rm /swap.img
+ echo "after swap off cmd"
+ free -h
+ sleep 5
+#load k module
+modprobe overlay
+modprobe br_netfilter
+sleep 5
+#perm
+tee /etc/modules-load.d/k8s.conf <<EOF
+overlay
+br_netfilter
+EOF
+#kernel parameters like IP forwarding
+tee /etc/sysctl.d/kubernetes.conf <<EOT
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOT
+sysctl --system
+#Containerd provides the container run time for Kubernetes.
+apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+sleep 5
+#add containerd repository using following set of commands.
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/containerd.gpg
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+#install containerd
+apt update && sudo apt install containerd.io -y
+#configure containerd so that it starts using SystemdCgroup.
+containerd config default |  tee /etc/containerd/config.toml >/dev/null 2>&1
+sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+#Restart containerd service so that above changes come into the affect.
+ systemctl restart containerd
+
+sleep 5
+#Download the public signing key for the Kubernetes package repository using curl command // i choose 1.32 version
+ curl -fsSL https://pkgs.k8s.io/core:/stable:/v$KUBE_PKG_VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/k8s.gpg
+#add the Kubernetes repository
+ echo "deb [signed-by=/etc/apt/keyrings/k8s.gpg] https://pkgs.k8s.io/core:/stable:/v$KUBE_PKG_VERSION/deb/ /" | sudo tee /etc/apt/sources.list.d/k8s.list
+#Install Kubernetes components like Kubeadm, kubelet and kubectl,
+apt update
+apt install kubelet kubeadm kubectl -y
+
