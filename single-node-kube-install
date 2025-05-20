@@ -1,0 +1,152 @@
+// Kubernetes install Ubuntu server 25.04 , SNK
+1. pick latest Release  of Kubernetes versions from below link
+	https://kubernetes.io/releases/
+1.1 poweron and Login to your VM [2cpu and 16gb ram, 2nic - 1 natnetwork, 2- hostonly]
+2. swap off // 0B
+ swapoff -a
+ free -h
+               total        used        free      shared  buff/cache   available
+Mem:           1.6Gi       367Mi       1.0Gi       1.1Mi       365Mi       1.2Gi
+Swap:             0B          0B          0B
+
+ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+ rm /swap.img
+3.  load the following kernel modules
+modprobe overlay
+modprobe br_netfilter
+
+4. permanent loading of these modules
+tee /etc/modules-load.d/k8s.conf <<EOF
+overlay
+br_netfilter
+EOF
+
+5.add the kernel parameters like IP forwarding.
+tee /etc/sysctl.d/kubernetes.conf <<EOT
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOT
+
+sysctl --system
+
+6. Containerd provides the container run time for Kubernetes. 
+apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+
+7. add containerd repository using following set of commands.
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/containerd.gpg
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+8.  install containerd
+apt update && sudo apt install containerd.io -y
+
+9.  configure containerd so that it starts using SystemdCgroup. 
+containerd config default |  tee /etc/containerd/config.toml >/dev/null 2>&1
+sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+
+10. Restart containerd service so that above changes come into the affect.
+ systemctl restart containerd
+ 
+11. Download the public signing key for the Kubernetes package repository using curl command // i choose 1.32 version
+ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/k8s.gpg
+
+12. add the Kubernetes repository
+ echo 'deb [signed-by=/etc/apt/keyrings/k8s.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/k8s.list
+ 
+13.Install Kubernetes components like Kubeadm, kubelet and kubectl,
+apt update
+apt install kubelet kubeadm kubectl -y
+
+14.Kubeadm command from the master node only to initialize the Kubernetes cluster.
+ip a |grep s8 // pick ip - 192.168.56.26
+ kubeadm init --apiserver-advertise-address=192.168.56.26 --pod-network-cidr=10.244.0.0/16 //replace apiserver IP with your hostonly NIC ip
+
+ //optional, pull all images manually to save time
+ kubeadm config images pull
+ 
+ // if any error, then clean and retry
+ kubeadm reset
+ 
+15. from the output, use below commands
+ mkdir -p $HOME/.kube
+ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+ chown $(id -u):$(id -g) $HOME/.kube/config
+
+16. install calico nw
+curl https://raw.githubusercontent.com/projectcalico/calico/v3.30.0/manifests/calico.yaml -O
+edit-> if required , else apply yaml file
+kubectl apply -f calico.yaml
+
+17. IMP step to change daemonset with hostonly NIC name: enp0s8
+kubectl set env daemonset/calico-node  -n kube-system IP_AUTODETECTION_METHOD=interface=enp0s8
+
+18. 
+kubectl get pods -n kube-system
+kubectl get po -A
+kubectl get no -o wide
+
+//ERRR
+if node status is 'not ready'
+ k get no -o wide
+NAME           STATUS     ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION      CONTAINER-RUNTIME
+lnx25-docker   NotReady   control-plane   2m    v1.32.4   10.0.2.13     <none>        Ubuntu 25.04   6.14.0-15-generic   containerd://1.7.27
+
+//check logs, if looks below--invalid
+k get event -w
+2m59s       Warning   InvalidDiskCapacity       node/lnx25-docker   invalid capacity 0 on image filesystem
+THEN try below command
+systemctl restart containerd
+systemctl restart kubelet
+
+ k get no
+NAME           STATUS   ROLES           AGE     VERSION
+lnx25-docker   Ready    control-plane   4m18s   v1.32.4
+
+
+19. deploy test app - nginx based deployment with replica count 2
+kubectl create ns demo-app
+kubectl create deployment nginx-app --image nginx --replicas 2 --namespace demo-app
+kubectl get deployment -n demo-app
+kubectl get pods -n demo-app
+
+20. expose this deployment using NodePort type
+kubectl expose deployment nginx-app -n demo-app --type NodePort --port 80
+$ kubectl get svc -n demo-app
+
+21. access your application using nodeport
+curl 192.168.56.26:30208
+
+
+
+
+
+17. remove taint
+kubectl taint nodes $(hostname) node-role.kubernetes.io/control-plane:NoSchedule-
+
+
+18. // Node-ip issue - 10.0.2.13
+ k get no -o wide
+NAME           STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION      CONTAINER-RUNTIME
+lnx25-docker   Ready    control-plane   26m   v1.32.4   10.0.2.13     <none>        Ubuntu 25.04   6.14.0-15-generic   containerd://1.7.27
+
+--solution
+on each node- add --node-ip=192.168.56.26 //static ip
+
+cat /var/lib/kubelet/kubeadm-flags.env
+KUBELET_KUBEADM_ARGS="--container-runtime-endpoint=unix:///var/run/containerd/containerd.sock --pod-infra-container-image=registry.k8s.io/pause:3.10 --node-ip=192.168.56.26"
+
+cat /etc/hosts
+127.0.1.1 lnx25-docker
+192.168.56.26 lnx25-docker
+
+
+systemctl restart kubelet
+ k get no -o wide
+NAME           STATUS   ROLES           AGE   VERSION   INTERNAL-IP     EXTERNAL-IP   OS-IMAGE       KERNEL-VERSION      CONTAINER-RUNTIME
+lnx25-docker   Ready    control-plane   32m   v1.32.4   192.168.56.26   <none>        Ubuntu 25.04   6.14.0-15-generic   containerd://1.7.27
+
+
+
+
+
+
