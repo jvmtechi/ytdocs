@@ -1,0 +1,50 @@
+what is KIND?
+Kind, short for Kubernetes in Docker, allows you to create and manage local Kubernetes clusters using Docker containers as nodes.
+This simplifies local development and testing by enabling you to simulate multi-node Kubernetes environments on your machine.
+
+kubernetes Multi-node clusters using KIND
+========================================
+Since Kind relies on Docker, we first need to ensure Docker is installed on our system. 
+docker version
+
+install kind binary
+[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
+chmod +x ./kind
+mv ./kind /usr/local/bin/kind
+
+kind version
+
+default- pick latest images
+---
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+
+- role: worker
+- role: worker
+
+
+kind create cluster --config kind.yml 
+kind get clusters
+kind
+kind-2
+kubectl taint nodes c2-control-plane node-role.kubernetes.io/control-plane:NoSchedule-
+k describe no kind-c2-control-plane|grep -i taint
+k label node c2-worker node-role.kubernetes.io/worker=worker
+
+In order to interact with a specific cluster, you only need to specify the cluster name as a context in kubectl:
+
+kubectl cluster-info --context kind-c2
+kubectl cluster-info --context kind-kind-2
+
+app
+deploy the nginx web server 
+kubectl create ns dev
+kubectl -n dev create deployment nginx --image=nginx
+kubectl -n dev expose deployment nginx --port 80 
+k get all -n dev
+
+
+cleanup
+kind delete cluster --name dev
