@@ -1,8 +1,7 @@
 #!/bin/bash
 ####script for Kube pkgs install on Ubuntu server only
-#how to run , $ bash kube-pkgs-install.sh 1.32 // here 1.32 is kube pkg version
 os=$(lsb_release -si) 
-if [ "$os" -ne "Ubuntu" ]; then   
+if [ "$os" != "Ubuntu" ]; then   
   echo "Ubuntu not detected!" && exit 1;
 fi
 echo "installing Kube pkgs in 5sec(applicable for both Master and worker node)"
@@ -54,9 +53,9 @@ sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config
 
 sleep 5
 #Download the public signing key for the Kubernetes package repository using curl command // i choose 1.32 version
- curl -fsSL https://pkgs.k8s.io/core:/stable:/v$KUBE_PKG_VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/k8s.gpg
+ curl -fsSL https://pkgs.k8s.io/core:/stable:/v$KUBE_PKG_VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes.gpg
 #add the Kubernetes repository
- echo "deb [signed-by=/etc/apt/keyrings/k8s.gpg] https://pkgs.k8s.io/core:/stable:/v$KUBE_PKG_VERSION/deb/ /" | sudo tee /etc/apt/sources.list.d/k8s.list
+ echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://pkgs.k8s.io/core:/stable:/v$KUBE_PKG_VERSION/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 #Install Kubernetes components like Kubeadm, kubelet and kubectl,
 apt update
 apt install kubelet kubeadm kubectl -y
