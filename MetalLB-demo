@@ -1,0 +1,50 @@
+=====================MetalLB
+Kubernetes services
+ClusterIP->accessible only within the cluster.
+NodePort->reach the service from outside , node IP address and the port number
+LoadBalancer-> pending value for the external IP address in Bare metal env.
+
+The Kubernetes clusters deployed in cloud environments use the functionality from the provider to dynamically provision managed load balancers for the services of type LoadBalancer. 
+MetalLB implements the load balancer functionality for local or bare metal Kubernetes clusters that are not deployed in cloud environments.
+
+
+MetalLB has two components
+Controller- allocates the IP addresses
+Speaker-- Manages the advertisement of the IP address associated with them. The speaker daemon set runs a pod on every node
+
+assign an IP to the services -> IPAddressPool CR.
+Once the IPs are assigned to a service, they must be announced.[Layer 2 mode]
+
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.9/config/manifests/metallb-native.yaml
+
+
+deploy the nginx web server 
+kubectl create ns dev
+kubectl -n dev create deployment nginx --image=nginx
+kubectl -n dev expose deployment nginx --port 80 
+k get all -n dev
+
+kubectl -n dev patch svc nginx --type='json' -p '[{"op":"replace","path":"/spec/type","value":"NodePort"},{"op":"replace","path":"/spec/ports/0/nodePort","value":30000}]'
+
+curl 172.18.0.2:30000
+ok
+//browser 
+http://192.168.56.40:30000/
+ok
+
+
+ kubectl -n dev patch svc nginx  -p '{"spec": {"type": "LoadBalancer"}}'
+  k get svc -n dev
+NAME    TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)        AGE
+nginx   LoadBalancer   10.96.245.175   172.18.0.130   80:30000/TCP   19m
+
+curl 172.18.0.130:80  ##ip assigned by metallb
+ok
+
+kubectl -n dev  scale --replicas=3 deployment nginx  # scale our deployment in order to see the load-balancing effect
+#call the load-balanced endpoint and see how the requests are load-balanced among our 3 pods!.
+for i in {1..5}; do curl http://172.18.0.130:80; done
+
+
+k delete -f ip-pool.yaml -f l2advertisement.yaml
+k delete -f https://raw.githubusercontent.com/metallb/metallb/v0.14.9/config/manifests/metallb-native.yaml
