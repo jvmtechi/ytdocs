@@ -1,0 +1,42 @@
+kind: Pod
+metadata:
+  name: example-web-pod
+  labels:
+    role: webserver
+spec:
+  containers:
+    - name: web
+      image: nginx
+      ports:
+        - name: web
+          containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-svc
+spec:
+  selector:
+    role: webserver
+  ports:
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: example.ingress
+      http:
+        paths:
+          - backend:
+              service:
+                name: example-svc
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
