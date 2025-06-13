@@ -1,6 +1,6 @@
 #to cleanup kube cluster - snk
 cleanup_kube_api_server (){
-
+REBOOT_FLAG=""
 #validation, if kube API server already running?
 kubectl  cluster-info 2>&1 >/dev/null
 if [ $? -ne 0 ];then
@@ -11,13 +11,22 @@ fi
 
 kubectl  cluster-info
 #kubectl delete all --all-namespaces --all
+echo "INFO: deleting calico CNI..."
+kubectl delete -f https://raw.githubusercontent.com/projectcalico/calico/v3.30.0/manifests/calico.yaml
+#iptables -F
+#iptables -t nat -F
+ip route flush proto bird
+ip link list | grep cali | awk '{print $2}' | cut -c 1-15 | xargs -I {} ip link delete {}
+modprobe -r ipip
+systemctl restart kubelet
+
 echo "INFO: Resetting Kubernetes cluster..."
 kubeadm reset -f
+sleep 5
 echo "INFO: Cleanup of CNI configuration "
 rm -rf /etc/cni/net.d
-
-rm -rf $HOME/.kube
-
+rm -rf $HOME/.kube/config
+REBOOT_FLAG=Y
 }
 
 #to cleanup kube pkgs - snk
@@ -53,5 +62,14 @@ rm -rf /etc/modules-load.d/kubernetes.conf
 
 }
 cleanup_kube_api_server
+
+if [[ "$1" == "all" ]]; then
 cleanup_kube_pkgs
-#reboot
+echo "INFO: manual reboot recommended, before performing next kube setup !"
+fi
+
+if [[ "$REBOOT_FLAG" == "Y" ]]; then
+echo "INFO: Rebooting nodes.. "
+sleep 3
+reboot
+fi
