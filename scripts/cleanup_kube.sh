@@ -45,6 +45,7 @@ dpkg -l |grep -iE "kubeadm|kubelet|kubectl"
 echo "INFO: uninstalling Kubernetes packages..."
 apt-get purge -y kubeadm kubectl kubelet kubernetes-cni kube*
 apt autoremove -y
+rm -rf /opt/cni/bin
 rm -rf /etc/kubernetes
 rm -rf /var/lib/etcd
 rm -rf /var/lib/kubelet
