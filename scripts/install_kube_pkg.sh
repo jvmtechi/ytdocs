@@ -88,6 +88,7 @@ echo "INFO: Adding Kubernetes 'repository' to File: /etc/apt/sources.list.d/kube
 echo "INFO: installing Kubernetes components ie. Kubeadm, kubelet and kubectl"
 echo ""
 apt update
+sleep $S_TIME
 apt install kubelet kubeadm kubectl -y
 }
 
@@ -127,14 +128,18 @@ master_node=$(kubectl get nodes -l node-role.kubernetes.io/control-plane= -o jso
 echo "INFO: Removing taint from master node: $master_node"
 kubectl taint nodes $master_node  node-role.kubernetes.io/control-plane:NoSchedule-
 systemctl restart kubelet
+echo "INFO: waiting few sec(max 1 min) to check node/pod ready status..."
 sleep $K_TIMEOUT
 
 echo "*****************************"
 echo "displaying node and pod status"
+sleep $S_TIME
 kubectl version
 kubectl get no
 kubectl get no -o wide
 kubectl cluster-info
+echo ""
+echo "kubectl get po -A"
 kubectl get po -A
 echo "*****************************"
 echo ""
@@ -145,17 +150,19 @@ if [[ -n "$KUBE_PKG_VERSION" &&  -n "$INTERFACE_NAME" && $# -eq 2 ]]; then
   echo "install kube  packages and configure API server.."
 #192.168.56.67  enp0s8
 KUBE_API_IP=$(ip addr show "$INTERFACE_NAME" | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)
-echo  "Found $KUBE_API_IP address from INTERFACE : $INTERFACE_NAME for Kube API server config..."
-echo "calling function install_kube_pkgs ..."
+echo  "INFO: Found $KUBE_API_IP address from INTERFACE : $INTERFACE_NAME for Kube API server config..."
+echo "INFO: Calling function 'install_kube_pkgs' ..."
 install_kube_pkgs
 echo "##############################"
 echo "calling function install_kube_api_server ..."
+echo "*****************************"
 install_kube_api_server
 elif [[ -n "$KUBE_PKG_VERSION" && $# -eq 1 ]];then
         if [[ "$KUBE_PKG_VERSION" =~ ^[1-9]\.[0-9][0-9]$ ]];then
-                echo "KUBE target version: $KUBE_PKG_VERSION"
-                echo "install kube pkg only"
-                echo "calling function install_kube_pkgs ..."
+                echo "INFO: Kube target version: $KUBE_PKG_VERSION"
+                echo "INFO: Install kube pkg only"
+                echo "INFO: calling function 'install_kube_pkgs' ..."
+                echo "*****************************"
                 install_kube_pkgs
         else
         echo "usage: bash <script-name.sh> <kube-version ie 1.32> "
