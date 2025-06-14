@@ -32,4 +32,4 @@ k apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller
 ==
 make windows host entry -- EXTERNAL-IP,  ingress HOSTS name above 
 C:\Windows\System32\drivers\etc\hosts
-192.168.56.230 example.ingress fruits.com apple.fruits.com banana.fruits.com mysql.example minio.example minioapi.example
+192.168.56.230 example.ingress fruits.com apple.fruits.com banana.fruits.com mysql.example minio.example minioapi.example  demo-app.ingress
