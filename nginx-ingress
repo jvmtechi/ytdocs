@@ -1,0 +1,28 @@
+Kubernetes ingress demo
+=======================
+What is an Ingress?
+Ingress is an object that allows access to your Kubernetes services from outside the Kubernetes cluster.
+create collection of rules that define which inbound connections reach which services.
+
+Ingress vs LoadBalancer vs NodePort?
+NodePort and LoadBalancer let you expose a service by specifying that value in the service’s type.
+But Ingress, is a completely independent resource to your service. You declare, create and destroy it separately to your services.
+- decoupled  from the services 
+- consolidate routing rules into one place.
+
+Prerequisites 
+Ingress controller [NGINX  , haproxy, etc..]
+Ingress resource [Ingress rules ]
+
+will cover below routing rules demo:
+Basic Routing-> exposes a single service to external traffic.
+Path-Based Routing-> different URL paths within the same domain
+Host-Based Routing->expose different services based on the different domains .
+
+  
+===demo
+1. install  Nginx Ingress Controller
+k apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml
+2.Deploy your Applications/service
+3. define ingress resource rule.
+==
