@@ -25,4 +25,11 @@ Host-Based Routing->expose different services based on the different domains .
 k apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.1/deploy/static/provider/cloud/deploy.yaml
 2.Deploy your Applications/service
 3. define ingress resource rule.
+4.k -n ingress-nginx get po # pick service/ingress-nginx-controller EXTERNAL-IP ->192.168.56.230
+5. k -n dev get ingress # pick HOSTS- >  example.ingress
+6. verify arp table entry # apt install net-tools
+
 ==
+make windows host entry -- EXTERNAL-IP,  ingress HOSTS name above 
+C:\Windows\System32\drivers\etc\hosts
+192.168.56.230 example.ingress fruits.com apple.fruits.com banana.fruits.com mysql.example minio.example minioapi.example
