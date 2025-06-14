@@ -34,7 +34,7 @@ metadata:
   namespace: metallb-system
 spec:
   ipAddressPools:
-
+  - first-pool
 ==
 deploy the nginx web server 
 kubectl create ns dev
