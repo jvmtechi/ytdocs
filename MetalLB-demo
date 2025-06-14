@@ -66,3 +66,27 @@ for i in {1..5}; do curl http://172.18.0.130:80; done
 
 k delete -f ip-pool.yaml -f l2advertisement.yaml
 k delete -f https://raw.githubusercontent.com/metallb/metallb/v0.14.9/config/manifests/metallb-native.yaml
+=====
+==================================================MetalLB troubleshooting====================================
+MetalLB has two components
+Controller- allocates the IP addresses
+Speaker-- Manages the advertisement of the IP address associated with them. The speaker daemon set runs a pod on every node
+
+NOTE:
+ metallb by default sets the node.kubernetes.io/exclude-from-external-load-balancers label on control plane nodes in the cluster. 
+  The issue I was facing , like speaker can not advertise svc ip, since pod is running on the master node, 
+ and metallb wasn't announcing the endpoint through the speaker. Forcing the pod onto another node in the cluster allowed the L2 announcement to happen else
+ in snk , u can remove master node taint
+
+kubectl -n metallb-system get pod
+kubectl -n ingress-nginx  get svc
+kubectl -n dev get pod,svc
+kubectl -n dev get ingress
+
+k get no --show-labels
+lnx25-vm1   Ready    control-plane   21d   v1.32.5   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=lnx25-vm1,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node.kubernetes.io/exclude-from-external-load-balancers=
+
+k label node u25-tmp node.kubernetes.io/exclude-from-external-load-balancers-
+
+kubectl -n metallb-system rollout restart deploy controller
+kubectl rollout restart -n metallb-system daemonset speaker
