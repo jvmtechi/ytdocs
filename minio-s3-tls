@@ -24,7 +24,7 @@ openssl req -x509 -nodes -days 365 \
     -out selfsigned-ui.crt
 
 ingress
-minioapi.example
+minio.example
 [console]
 admin
 password123
@@ -146,7 +146,17 @@ spec:
     secretName: minio-ui-tls
 6.
 kubectl -n dev apply -f minio-pvc.yaml -f minio-dep.yaml -f minio-svc.yaml -f minio-console-ingress.yaml
+7.
+==
+make windows host entry -- EXTERNAL-IP,  ingress HOSTS name above 
+C:\Windows\System32\drivers\etc\hosts
+192.168.56.230  minio.example
 
-7. [cleanup]
+# windows browser https://minio.example
+[console cred]
+admin
+password123
+8. [cleanup, if required]
 kubectl -n dev delete -f minio-svc.yaml -f minio-api-ingress.yaml -f minio-console-ingress.yaml -f minio-dep.yaml -f minio-pvc.yaml
+
 ================================
