@@ -1,0 +1,35 @@
+ELK stack using Elastic Cloud on Kubernetes (ECK)
+=================================================
+doc- https://www.elastic.co/docs/deploy-manage/deploy/cloud-on-k8s
+
+
+Kubernetes logging, ELK stack, Elasticsearch,Filebeat,Logstash,Kibana,ELK stack using Elastic Cloud on Kubernetes (ECK), ECK operator
+Filebeat with Elk Stack Tutorial With Kubernetes, Kubernetes logging  with ELK stack,Kubernetes logging using ELK,logging using ECK operator
+
+Elasticsearch-- act as Log store,  is a  open source full-text search and analytics engine.
+
+Beats: is a data shipper which collects the data at the client and ship it either to elasticsearch or logstash
+[Filebeat-> to collect the logs from our containers and ship them to Logstash to be processed]
+To allow Filebeat to see the logs from container in other namespaces, we must define a Service Account, a Cluster Role and then bind them together. 
+DaemonSet
+
+
+Logstash filters and parses the data it collects, transforming it into a common format. It then sends that data wherever you want it to go. Many organizations send the transformed data to Elasticsearch, where logs can be indexed and searched. 
+
+Kibana is an open source data analysis and visualization tool that turns the data stored in Elasticsearch into easily consumable charts, graphs, histograms, and other visual representations. 
+
+
+
+k create -f https://download.elastic.co/downloads/eck/3.0.0/crds.yaml
+k apply -f https://download.elastic.co/downloads/eck/3.0.0/operator.yaml
+k create ns logging
+kubectl patch storageclass local-path -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+elastic
+5HXomxdY84UcH24B1U845pH9
+kubectl -n logging  get secret elasticsearch-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode; echo
+
+--cleanup
+k -n logging delete -f filebeat-kubernetes.yaml -f logstash.yaml -f beat.yaml  -f kibana.yaml -f es.yaml
+kubectl delete -f https://download.elastic.co/downloads/eck/3.0.0/operator.yaml -f https://download.elastic.co/downloads/eck/3.0.0/crds.yaml
+k -n logging get pvc
+k -n logging delete pvc <logstash-pvc-name>
