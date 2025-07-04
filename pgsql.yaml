@@ -1,0 +1,108 @@
+pg-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-cm
+  labels:
+    app: postgres
+data: #contains the configuration data as key-value pairs.
+  POSTGRES_DB: pgdb
+  POSTGRES_USER: pguser
+  POSTGRES_PASSWORD: pgpassword123
+========
+pg-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: 'postgres:16'
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-cm
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgresdata
+      volumes:
+        - name: postgresdata
+          persistentVolumeClaim:
+            claimName: pg-pvc
+=================
+pg-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pg-pvc
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+===============
+pg-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+  labels:
+    app: postgres
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+  selector:
+    app: postgres
+=================================
+
+k -n pgsql exec  -it postgres-6b895f85c-5kdl6 -- psql -h localhost -U pguser --password -p 5432 pgdb
+kubectl scale deployment --replicas=3 postgres
+
+kubectl exec -it postgres-665b7554dc-cddgq -- pg_dump -U ps_user -d ps_db > db_backup.sql
+
+#copy the SQL dump file from your local machine into the PostgreSQL Pod
+kubectl cp db_backup.sql postgres-665b7554dc-cddgq:/tmp/db_backup.sql
+
+kubectl exec -it postgres-665b7554dc-cddgq -- /bin/bash
+#restore the backup from the dump file.
+inside pod# psql -U ps_user -d ps_db -f /tmp/db_backup.sql
+
+CREATE TABLE employee (
+    emp_id 	INT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    gender CHAR(1),
+    birthdate DATE,
+    email VARCHAR(100) UNIQUE,
+    salary INT
+);
+
+INSERT INTO employee
+VALUES(1,'Annie','Smith','F', DATE '1988-01-09', 'ani@email.com',5000);
+
+INSERT INTO employee(emp_id, first_name, last_name, gender, birthdate)
+VALUES
+	(5,'Sachin','Tendulkar','M', DATE '1978-01-09'),
+	(6,'Kapil', 'Dev', 'M', DATE '1959-03-26'),
+  	(7,'Joe','Root','M', DATE '1988-11-29'),
+	(8,'Moeen', 'Ali', 'M', DATE '1999-04-16');
+	
+select * from employee;
+
+INSERT INTO employee
+VALUES(3,'xman','xman','M', DATE '1988-01-19', 'xman@email.com',7000);
