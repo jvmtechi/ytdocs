@@ -106,3 +106,19 @@ select * from employee;
 
 INSERT INTO employee
 VALUES(3,'xman','xman','M', DATE '1988-01-19', 'xman@email.com',7000);
+========output
+# kubectl -n pgsql  scale deployment --replicas=2 postgres
+deployment.apps/postgres scaled
+root@lnx25-vm1:~/pgsql#
+root@lnx25-vm1:~/pgsql# k -n pgsql get deploy
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+postgres   2/2     2            2           16m
+root@lnx25-vm1:~/pgsql# k -n pgsql get po
+NAME                       READY   STATUS    RESTARTS   AGE
+postgres-6b895f85c-5kdl6   1/1     Running   0          16m
+postgres-6b895f85c-f7k5z   1/1     Running   0          10s
+root@lnx25-vm1:~/pgsql# k -n pgsql get pvc
+NAME     STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+pg-pvc   Bound    pvc-4366e554-9060-4c3d-a2c9-a3797e6ff76d   2Gi        RWO            local-path     <unset>                 16m
+root@lnx25-vm1:~/pgsql#
+================
