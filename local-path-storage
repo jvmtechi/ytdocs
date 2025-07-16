@@ -1,6 +1,13 @@
 Local StorageClass:
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml
 
+Mark a StorageClass as default:
+ kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+Mark the default StorageClass as non-default:
+kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+
+pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
