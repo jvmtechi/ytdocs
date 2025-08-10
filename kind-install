@@ -52,6 +52,7 @@ kind delete cluster --name dev
 Hostpath storage and use below yaml to create kind cluster
 mkdir /opt/kind-volume
 chmod 777 /opt/kind-volume
+Note: change your static ip -192.168.56.40 in below yaml
 =========== kind sample for kubernetes version 1.32.5==================
 cat kind-ingress.yaml
 kind: Cluster
