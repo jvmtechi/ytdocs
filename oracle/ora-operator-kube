@@ -1,0 +1,35 @@
+
+===================Oracle db install using  Kubernetes Operator================
+Install cert-manager
+The operator uses webhooks for validating user input before persisting it in etcd.
+Webhooks require TLS certificates that are generated and managed by a certificate manager.
+
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.18.2/cert-manager.yaml
+
+
+OraOperator is deployed to operate in a cluster, and to monitor all the namespaces in the cluster. [ other option -Namespace Scoped Deployment ]
+
+wget https://github.com/oracle/oracle-database-operator/blob/main/rbac/cluster-role-binding.yaml
+kubectl apply -f cluster-role-binding.yaml
+wget https://github.com/oracle/oracle-database-operator/blob/main/oracle-database-operator.yaml
+kubectl apply -f oracle-database-operator.yaml 
+
+kubectl get pods -n oracle-database-operator-system
+kubectl get crd
+
+###DB password
+kubectl create secret generic db-admin-secret --from-literal=oracle_pwd=Password123  
+
+kubectl create secret docker-registry oracle-container-registry-secret --docker-server=container-registry.oracle.com --docker-username='email' --docker-password='token' --docker-email='email'
+OR
+docker login container-registry.oracle.com //with username and passwd
+kubectl create secret generic oracle-container-registry-secret  --from-file=.dockerconfigjson=${PWD}/.docker/config.json --type=kubernetes.io/dockerconfigjson
+
+Provision the SIDB
+kubectl apply -f singleinstancedatabase_create.yaml
+
+D:\opt\ora19-client\instantclient_19_27>sqlplus.exe sys/Password123@192.168.56.43:32000/FREE as sysdba
+
+k exec -it sidb-sample-4j1xx -- bash
+
+SHUTDOWN IMMEDIATE; 
